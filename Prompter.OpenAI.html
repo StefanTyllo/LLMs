@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prompter</title>
+  <link rel="stylesheet" href="./styles.css">
+  <style>
+    .collapsed {
+      display: none;
+    }
+    .toggle-button {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="left">
+      <h1>Prompter</h1>
+      <label for="system-prompt">System Prompt:</label>
+      <textarea id="system-prompt" rows="2" placeholder="Enter system prompt here..."></textarea>
+
+      <label for="user-prompt">User Prompt:</label>
+      <textarea id="user-prompt" rows="4" placeholder="Enter user prompt here..."></textarea>
+
+      <button onclick="sendToGPT()">Send Prompt</button>
+
+      <div class="response" id="response"></div>
+    </div>
+
+    <div class="right">
+      <h2>Parameters</h2>
+
+      <div>
+        <label for="api-key">API Key:</label>
+        <input type="text" id="api-key" value="key">
+      </div>
+
+      <div>
+        <label for="model">Model:</label>
+        <select id="model">
+          <option value="gpt-4o">gpt-4o</option>
+          <option value="gpt-4o-mini">gpt-4o-mini</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="temperature">Temperature:</label>
+        <input type="number" id="temperature" min="0" max="1" step="0.1" value="1">
+      </div>
+
+      <div>
+        <label for="max-tokens">Max Tokens:</label>
+        <input type="number" id="max-tokens" min="1"  value="1000">
+      </div>
+
+      <div>
+        <label for="top-p">Top P:</label>
+        <input type="number" id="top-p" min="0" max="1" step="0.1" value="1">
+      </div>
+
+      <div>
+        <label for="frequency-penalty">Frequency Penalty:</label>
+        <input type="number" id="frequency-penalty" min="0" max="2" step="0.1" value="0">
+      </div>
+
+      <div>
+        <label for="presence-penalty">Presence Penalty:</label>
+        <input type="number" id="presence-penalty" min="0" max="2" step="0.1" value="0">
+      </div>
+
+      <button onclick="clearHistory()">Clear History</button>
+    </div>
+  </div>
+
+  <script>
+    let chatHistory = [];
+
+    async function sendToGPT() {
+      const apiKey = document.getElementById('api-key').value.trim();
+      const model = document.getElementById('model').value;
+      const systemPrompt = document.getElementById('system-prompt').value;
+      const userPrompt = document.getElementById('user-prompt').value;
+      const temperature = parseFloat(document.getElementById('temperature').value);
+      const maxTokens = parseInt(document.getElementById('max-tokens').value);
+      const topP = parseFloat(document.getElementById('top-p').value);
+      const frequencyPenalty = parseFloat(document.getElementById('frequency-penalty').value);
+      const presencePenalty = parseFloat(document.getElementById('presence-penalty').value);
+      const responseElement = document.getElementById('response');
+      responseElement.innerText = 'Loading...';
+
+      let url = 'https://api.openai.com/v1/chat/completions';
+      let messages = [
+        { role: 'system', content: systemPrompt }
+      ];
+
+      messages = messages.concat(chatHistory);
+      if (userPrompt) {
+        messages.push({ role: 'user', content: userPrompt });
+      }
+
+      let data = {
+        model: model,
+        messages: messages,
+        max_tokens: maxTokens,
+        temperature: temperature,
+        top_p: topP,
+        frequency_penalty: frequencyPenalty,
+        presence_penalty: presencePenalty,
+      };
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+          const errorDetails = await response.json();
+          throw new Error(`${response.status} ${response.statusText}: ${errorDetails.error.message}`);
+        }
+
+        const responseData = await response.json();
+        let botResponse = responseData.choices[0].message.content.trim();
+
+        chatHistory.push({ role: 'user', content: userPrompt });
+        chatHistory.push({ role: 'assistant', content: escapeHtml(botResponse) });
+
+        updateResponseElement();
+      } catch (error) {
+        console.error('Error:', error.message);
+        responseElement.innerText = `Error: ${error.message}`;
+      }
+    }
+
+    function updateResponseElement() {
+      const responseElement = document.getElementById('response');
+      responseElement.innerHTML = chatHistory.map((entry, index) => {
+        const isLastEntry = index === chatHistory.length - 1;
+        const expandedClass = isLastEntry ? '' : 'collapsed';
+        const toggleIcon = isLastEntry ? '-' : '+';
+        return `<div>
+                  <span class="toggle-button" onclick="toggleContent(this)">${toggleIcon}</span>
+                  <b>${entry.role}:</b> 
+                  <code class="${expandedClass}">${entry.content}</code>
+                </div>`;
+      }).join('<br><br>');
+    }
+
+    function toggleContent(buttonElement) {
+      const codeElement = buttonElement.nextElementSibling.nextElementSibling;
+      if (codeElement.classList.contains('collapsed')) {
+        codeElement.classList.remove('collapsed');
+        buttonElement.innerText = '-';
+      } else {
+        codeElement.classList.add('collapsed');
+        buttonElement.innerText = '+';
+      }
+    }
+
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function clearHistory() {
+      chatHistory = [];
+      updateResponseElement();
+    }
+  </script>
+
+
+</body></html>
