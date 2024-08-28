@@ -1,5 +1,6 @@
 ## Overview
 The Prompter application is a simple web-based interface that allows users to send prompts to OpenAI's GPT model and display the responses. Users can customize parameters such as the model type, temperature, and maximum tokens for fine-tuning the prompt and response behavior. The application supports a chat-like interface, displaying conversation history with the AI.
+I use it for training purposes, give the API key to the students and let them prompt without having to go via the registration process
 
 ## Features
 - **System and User Prompts**: Input fields to specify the system and user prompts.
