@@ -1,0 +1,4 @@
+body { font-family: Arial, sans-serif; background: #111; color: #fff; text-align: center; }
+#container { margin: 20px auto; width: 320px; height: 320px; background: #222; }
+.controls { margin-top: 10px; }
+button { padding: 5px 10px; margin: 0 5px; }
